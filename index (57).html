@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comptabilité en Partie Double — Jeu Éducatif</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f0ece4;
+  --card: #ffffff;
+  --ink: #1a1a2e;
+  --ink-soft: #4a4a5e;
+  --ink-muted: #8a8a9e;
+  --accent: #2563eb;
+  --accent-light: #dbeafe;
+  --accent-dark: #1d4ed8;
+  --success: #059669;
+  --success-light: #d1fae5;
+  --success-bg: #ecfdf5;
+  --error: #dc2626;
+  --error-light: #fee2e2;
+  --error-bg: #fef2f2;
+  --warning: #d97706;
+  --warning-light: #fef3c7;
+  --debit: #2563eb;
+  --debit-light: #dbeafe;
+  --credit: #7c3aed;
+  --credit-light: #ede9fe;
+  --actif-light: #cffafe;
+  --passif-light: #fae8ff;
+  --orange: #ea580c;
+  --orange-light: #fff7ed;
+  --radius: 12px;
+  --radius-lg: 20px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.12);
+  --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--ink); min-height:100vh; line-height:1.6; }
+h1,h2,h3 { font-family:'Fraunces',serif; line-height:1.2; }
+
+.app-header { background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460); color:white; padding:2rem; text-align:center; position:relative; overflow:hidden; }
+.app-header::before { content:''; position:absolute; top:-50%; left:-50%; width:200%; height:200%; background:radial-gradient(circle at 30% 50%,rgba(37,99,235,0.15) 0%,transparent 50%),radial-gradient(circle at 70% 50%,rgba(124,58,237,0.1) 0%,transparent 50%); animation:shimmer 8s ease-in-out infinite; }
+@keyframes shimmer{0%,100%{transform:translate(0,0)}50%{transform:translate(-2%,-1%)}}
+.app-header h1{font-size:clamp(1.6rem,4vw,2.4rem);font-weight:800;position:relative;z-index:1;margin-bottom:0.3rem}
+.app-header p{font-size:0.95rem;opacity:0.8;position:relative;z-index:1}
+.school-badge{display:inline-block;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.15);padding:0.3rem 1rem;border-radius:20px;font-size:0.8rem;margin-top:0.8rem;position:relative;z-index:1}
+
+.progress-container{background:var(--card);border-bottom:1px solid rgba(0,0,0,0.06);padding:1rem 2rem;position:sticky;top:0;z-index:100;box-shadow:var(--shadow)}
+.progress-inner{max-width:900px;margin:0 auto;display:flex;align-items:center;gap:0.8rem;flex-wrap:wrap}
+.progress-label{font-size:0.8rem;font-weight:600;color:var(--ink-soft);white-space:nowrap}
+.progress-track{flex:1;height:8px;background:var(--bg);border-radius:99px;overflow:hidden;min-width:100px}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),#7c3aed);border-radius:99px;transition:width 0.6s cubic-bezier(0.34,1.56,0.64,1);width:0%}
+.progress-stats{display:flex;gap:0.8rem;font-size:0.78rem;font-weight:700}
+.stat-g{color:var(--success)}.stat-o{color:var(--orange)}.stat-r{color:var(--error)}
+
+.nav-exercises{max-width:900px;margin:1.5rem auto 0;padding:0 1.5rem;display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:center}
+.nav-btn{width:42px;height:42px;border-radius:50%;border:2px solid #ddd;background:var(--card);font-family:'DM Sans';font-weight:700;font-size:0.85rem;color:var(--ink-muted);cursor:pointer;transition:var(--transition)}
+.nav-btn:hover{border-color:var(--accent);color:var(--accent);transform:scale(1.08)}
+.nav-btn.active{background:var(--accent);border-color:var(--accent);color:white}
+.nav-btn.completed{background:var(--success);border-color:var(--success);color:white}
+.nav-btn.locked{opacity:0.4;cursor:not-allowed}
+.nav-btn.locked:hover{transform:none;border-color:#ddd;color:var(--ink-muted)}
+
+.main-content{max-width:900px;margin:0 auto;padding:1.5rem}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes bounceIn{0%{transform:scale(0.8);opacity:0}50%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.fade-in{animation:fadeIn 0.4s ease}.bounce-in{animation:bounceIn 0.4s ease}.shake{animation:shake 0.4s ease}
+
+.exercise-header{background:var(--card);border-radius:var(--radius-lg);padding:1.8rem 2rem;margin-bottom:1.5rem;box-shadow:var(--shadow);border-left:5px solid var(--accent)}
+.exercise-number{font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);margin-bottom:0.3rem}
+.exercise-header h2{font-size:1.5rem;margin-bottom:0.5rem}
+.exercise-header p{color:var(--ink-soft);font-size:0.95rem}
+.exercise-intro{background:var(--accent-light);border-radius:var(--radius);padding:1.2rem 1.5rem;margin-top:1rem;font-size:0.9rem;color:var(--accent-dark);border:1px solid rgba(37,99,235,0.15)}
+
+.scenario-box{background:linear-gradient(135deg,#fefce8,#fef9c3);border:1px solid #fde68a;border-radius:var(--radius);padding:1.3rem 1.5rem;margin-bottom:1.2rem;font-size:0.92rem}
+.scenario-title{font-weight:700;margin-bottom:0.5rem;display:flex;align-items:center;gap:0.5rem}
+
+.question-card{background:var(--card);border-radius:var(--radius-lg);padding:1.5rem 2rem;margin-bottom:1rem;box-shadow:var(--shadow);transition:var(--transition);border:2px solid transparent}
+.question-card.correct{border-color:var(--success);background:var(--success-bg)}
+.question-card.incorrect{border-color:var(--error);background:var(--error-bg)}
+.question-card.retry-mode{border-color:var(--orange);background:var(--orange-light)}
+.question-text{font-size:1rem;font-weight:600;margin-bottom:1rem;line-height:1.5}
+.question-subtitle{font-size:0.85rem;color:var(--ink-muted);margin-bottom:0.8rem}
+
+.options-grid{display:grid;gap:0.6rem}
+.options-grid.two-col{grid-template-columns:1fr 1fr}
+.option-btn{background:var(--bg);border:2px solid transparent;border-radius:var(--radius);padding:0.9rem 1.2rem;font-family:'DM Sans';font-size:0.9rem;font-weight:500;color:var(--ink);cursor:pointer;transition:var(--transition);text-align:left;display:flex;align-items:center;gap:0.6rem}
+.option-btn:hover:not(.disabled):not(.eliminated){border-color:var(--accent);background:var(--accent-light);transform:translateX(3px)}
+.option-btn.correct-answer{border-color:var(--success);background:var(--success-light);color:var(--success)}
+.option-btn.wrong-answer{border-color:var(--error);background:var(--error-light);color:var(--error)}
+.option-btn.disabled{pointer-events:none}
+.option-btn.eliminated{opacity:0.25;text-decoration:line-through;pointer-events:none;background:#f1f1f1}
+.option-letter{width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,0.06);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.8rem;flex-shrink:0}
+
+.drop-zones{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.drop-zone{background:var(--card);border:2px dashed #ccc;border-radius:var(--radius);padding:1rem;min-height:160px;transition:var(--transition)}
+.drop-zone.over{border-color:var(--accent);background:var(--accent-light)}
+.drop-zone-title{font-weight:700;font-size:0.85rem;text-align:center;padding:0.4rem 0.8rem;border-radius:8px;margin-bottom:0.8rem}
+.drop-zone-title.actif{background:var(--actif-light);color:#0891b2}
+.drop-zone-title.passif{background:var(--passif-light);color:#c026d3}
+.drop-zone .items-container{display:flex;flex-direction:column;gap:0.5rem;min-height:60px}
+.drag-items-source{display:flex;flex-wrap:wrap;gap:0.6rem;margin-bottom:1.2rem;justify-content:center;min-height:48px}
+.drag-item{background:var(--card);border:2px solid #ddd;border-radius:var(--radius);padding:0.6rem 1rem;font-size:0.88rem;font-weight:500;cursor:grab;transition:var(--transition);user-select:none;box-shadow:var(--shadow)}
+.drag-item:hover:not(.locked){transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--accent)}
+.drag-item.correct-placed{border-color:var(--success);background:var(--success-light);cursor:default}
+.drag-item.wrong-placed{border-color:var(--error);background:var(--error-light)}
+.drag-item.locked{cursor:default}
+
+.t-account{background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);margin-bottom:1rem}
+.t-account-header{background:linear-gradient(135deg,#1e293b,#334155);color:white;padding:0.7rem 1.2rem;font-weight:700;font-size:0.9rem;text-align:center}
+.t-account-body{display:grid;grid-template-columns:1fr 1fr}
+.t-account-side{padding:0.8rem}
+.t-account-side:first-child{border-right:2px solid #e2e8f0}
+.t-side-header{text-align:center;font-weight:700;font-size:0.8rem;padding:0.3rem;border-radius:6px;margin-bottom:0.5rem}
+.t-side-header.debit{background:var(--debit-light);color:var(--debit)}
+.t-side-header.credit{background:var(--credit-light);color:var(--credit)}
+.t-entry{display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0.5rem;font-size:0.85rem;border-radius:6px;margin-bottom:0.3rem}
+
+.input-group{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.6rem}
+.input-group label{font-size:0.88rem;font-weight:500;min-width:120px;color:var(--ink-soft)}
+.amount-input{font-family:'JetBrains Mono',monospace;font-size:0.9rem;padding:0.5rem 0.8rem;border:2px solid #ddd;border-radius:8px;width:130px;text-align:right;transition:var(--transition);background:var(--bg)}
+.amount-input:focus{outline:none;border-color:var(--accent);background:white}
+.amount-input.correct{border-color:var(--success)!important;background:var(--success-light)!important}
+.amount-input.incorrect{border-color:var(--error)!important;background:var(--error-light)!important}
+.select-input{font-family:'DM Sans';font-size:0.88rem;padding:0.5rem 0.8rem;border:2px solid #ddd;border-radius:8px;background:var(--bg);transition:var(--transition);cursor:pointer;min-width:200px}
+.select-input:focus{outline:none;border-color:var(--accent);background:white}
+.select-input.correct{border-color:var(--success)!important;background:var(--success-light)!important}
+.select-input.incorrect{border-color:var(--error)!important;background:var(--error-light)!important}
+
+.feedback{padding:1rem 1.2rem;border-radius:var(--radius);margin-top:0.8rem;font-size:0.9rem;display:none;animation:fadeIn 0.3s ease;line-height:1.6}
+.feedback.show{display:block}
+.feedback.success{background:var(--success-light);color:#065f46;border:1px solid #a7f3d0}
+.feedback.error{background:var(--error-light);color:#991b1b;border:1px solid #fecaca}
+.feedback.warning{background:var(--warning-light);color:#92400e;border:1px solid #fde68a}
+
+.btn{font-family:'DM Sans';font-weight:600;font-size:0.9rem;padding:0.7rem 1.8rem;border-radius:var(--radius);border:none;cursor:pointer;transition:var(--transition);display:inline-flex;align-items:center;gap:0.5rem}
+.btn:hover{transform:translateY(-1px)}.btn:active{transform:translateY(0)}
+.btn-primary{background:var(--accent);color:white;box-shadow:0 2px 8px rgba(37,99,235,0.3)}
+.btn-primary:hover{background:var(--accent-dark)}
+.btn-success{background:var(--success);color:white;box-shadow:0 2px 8px rgba(5,150,105,0.3)}
+.btn-success:hover{background:#047857}
+.btn-outline{background:transparent;color:var(--accent);border:2px solid var(--accent)}
+.btn-outline:hover{background:var(--accent-light)}
+.btn-group{display:flex;gap:0.8rem;margin-top:1.5rem;flex-wrap:wrap}
+
+.action-bar{background:var(--card);border-radius:var(--radius);padding:1rem 1.5rem;margin-top:1rem;box-shadow:var(--shadow-md);display:flex;justify-content:center;gap:0.8rem;flex-wrap:wrap}
+
+.step-indicator{display:flex;gap:0.3rem;margin-bottom:1rem;flex-wrap:wrap}
+.step-dot{width:10px;height:10px;border-radius:50%;background:#ddd;transition:var(--transition)}
+.step-dot.active{background:var(--accent);width:28px;border-radius:99px}
+.step-dot.d-green{background:var(--success)}.step-dot.d-orange{background:var(--orange)}.step-dot.d-red{background:var(--error)}
+
+.score-display{background:var(--card);border-radius:var(--radius);padding:1rem 1.5rem;box-shadow:var(--shadow);margin-bottom:1rem;display:flex;justify-content:space-around;text-align:center;gap:0.5rem;flex-wrap:wrap}
+.score-item{display:flex;flex-direction:column;align-items:center}
+.score-item .sv{font-family:'Fraunces',serif;font-size:1.5rem;font-weight:800}
+.score-item .sl{font-size:0.7rem;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.05em}
+.sv.green{color:var(--success)}.sv.orange{color:var(--orange)}.sv.red{color:var(--error)}
+
+.correct-reveal{background:linear-gradient(135deg,#ecfdf5,#d1fae5);border:2px solid #6ee7b7;border-radius:var(--radius);padding:1.2rem 1.5rem;margin-top:1rem;font-size:0.92rem;animation:fadeIn 0.4s}
+.correct-reveal .reveal-title{font-weight:700;color:var(--success);margin-bottom:0.5rem;display:flex;align-items:center;gap:0.5rem}
+
+.verif-table{width:100%;border-collapse:collapse;font-size:0.88rem;background:var(--card);border-radius:var(--radius);overflow:hidden}
+.verif-table th{background:#f1f5f9;padding:0.7rem 1rem;text-align:left;font-weight:700;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-soft)}
+.verif-table td{padding:0.6rem 1rem;border-bottom:1px solid #f1f5f9}
+.verif-table td.mono{font-family:'JetBrains Mono',monospace;text-align:right}
+
+.hint-box{background:#f0f9ff;border:1px solid #bae6fd;border-radius:var(--radius);padding:1rem 1.2rem;margin-top:0.8rem;font-size:0.85rem;color:#0369a1;display:none;animation:fadeIn 0.3s}
+.hint-box.show{display:block}
+.hint-toggle{background:none;border:none;color:var(--accent);cursor:pointer;font-size:0.85rem;font-family:'DM Sans';font-weight:600;display:flex;align-items:center;gap:0.3rem;margin-top:0.5rem}
+.hint-toggle:hover{text-decoration:underline}
+
+.welcome-card{background:var(--card);border-radius:var(--radius-lg);padding:2.5rem;box-shadow:var(--shadow-md);max-width:700px;margin:0 auto}
+.welcome-card h2{font-size:1.8rem;margin-bottom:1rem}
+.welcome-card p{color:var(--ink-soft);margin-bottom:1.5rem;font-size:1rem;line-height:1.7}
+.objectives-list{text-align:left;list-style:none;margin:1.5rem 0}
+.objectives-list li{padding:0.6rem 0;display:flex;align-items:flex-start;gap:0.8rem;font-size:0.92rem;border-bottom:1px solid #f0f0f0}
+.objectives-list li:last-child{border:none}
+.obj-icon{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:700;flex-shrink:0}
+.obj-icon.c1{background:#dbeafe;color:#2563eb}.obj-icon.c2{background:#cffafe;color:#0891b2}.obj-icon.c3{background:#ede9fe;color:#7c3aed}.obj-icon.c4{background:#fef3c7;color:#d97706}.obj-icon.c5{background:#d1fae5;color:#059669}.obj-icon.c6{background:#fce7f3;color:#db2777}.obj-icon.c7{background:#fee2e2;color:#dc2626}
+
+.final-card{background:var(--card);border-radius:var(--radius-lg);padding:3rem;box-shadow:var(--shadow-lg);max-width:700px;margin:0 auto}
+.final-card h2{font-size:2rem;margin-bottom:0.5rem}
+.final-score-big{font-family:'Fraunces',serif;font-size:3rem;font-weight:800;background:linear-gradient(135deg,var(--accent),#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:0.5rem 0}
+.grade-badge{display:inline-block;padding:0.5rem 1.5rem;border-radius:99px;font-weight:700;font-size:1.1rem;margin-bottom:1rem}
+.grade-a{background:var(--success-light);color:var(--success)}.grade-b{background:var(--accent-light);color:var(--accent)}.grade-c{background:var(--warning-light);color:var(--warning)}.grade-d{background:var(--error-light);color:var(--error)}
+
+.legend-bar{display:flex;gap:1.5rem;justify-content:center;margin:1rem 0;font-size:0.82rem;font-weight:600;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:0.4rem}
+.legend-dot{width:12px;height:12px;border-radius:50%}
+.legend-dot.green{background:var(--success)}.legend-dot.orange{background:var(--orange)}.legend-dot.red{background:var(--error)}
+
+.confetti-container{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999}
+@keyframes cfall{0%{top:-10px;opacity:1;transform:rotate(0) translateX(0)}100%{top:100vh;opacity:0;transform:rotate(720deg) translateX(80px)}}
+
+@media(max-width:640px){
+  .drop-zones{grid-template-columns:1fr}.options-grid.two-col{grid-template-columns:1fr}
+  .exercise-header,.question-card{padding:1.2rem 1.5rem}
+  .nav-btn{width:36px;height:36px;font-size:0.75rem}
+  .amount-input{width:100px}.input-group{flex-wrap:wrap}.input-group label{min-width:100%}
+}
+</style>
+</head>
+<body>
+<header class="app-header">
+  <h1>⚖️ Comptabilité en Partie Double</h1>
+  <p>Maîtrise les écritures comptables étape par étape !</p>
+  <div class="school-badge">Institut Saint-Luc de Frameries — 4e Technique</div>
+</header>
+<div class="progress-container">
+  <div class="progress-inner">
+    <span class="progress-label">Progression</span>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-stats">
+      <span class="stat-g" id="sG">✅ 0</span>
+      <span class="stat-o" id="sO">🔄 0</span>
+      <span class="stat-r" id="sR">👁 0</span>
+    </div>
+  </div>
+</div>
+<nav class="nav-exercises" id="navEx"></nav>
+<main class="main-content" id="main"></main>
+<div class="confetti-container" id="confC"></div>
+<script>
+const A={cur:0,done:{},res:{}};
+const EX=[
+{id:1,title:"Les Pièces Justificatives",desc:"Identifie le bon type de document pour chaque situation.",
+intro:"Avant d'enregistrer une opération, il faut identifier la <strong>pièce justificative</strong>. Chaque type de document entraîne un type d'écriture différent.",
+type:"mcq",questions:[
+{text:"L'entreprise ENVOL4 reçoit un document de son fournisseur « La Gourmandine » pour l'achat d'un four micro-ondes (375,00 € HTVA + 78,75 € TVA). Quel type de pièce justificative est-ce ?",options:["Facture de vente","Facture d'achat","Extrait de compte","Pièce de caisse"],correct:1,explanation:"C'est une <strong>facture d'achat</strong> : on REÇOIT ce document d'un fournisseur. Elle engendre une <strong>dette</strong>."},
+{text:"Marc LEROY envoie un document à la SRL TechnoShop suite à la vente d'un ordinateur pour 200,00 €. Quel type de document ?",options:["Pièce de caisse","Extrait de compte","Facture de vente","Facture d'achat"],correct:2,explanation:"C'est une <strong>facture de vente</strong> : on ENVOIE ce document à un client → naissance d'une <strong>créance</strong>."},
+{text:"La banque BNP Paribas Fortis envoie le document n° 285 à Marc LEROY : versement de 200,00 € de TechnoShop. Type de document ?",options:["Facture de vente","Pièce de caisse","Extrait de compte","Facture d'achat"],correct:2,explanation:"C'est un <strong>extrait de compte bancaire</strong> : envoyé par la banque → mouvement de <strong>trésorerie</strong>."},
+{text:"La SRL ENVOL4 paie 45,00 € en espèces pour des fournitures. Le responsable rédige un document interne. Quel est-il ?",options:["Extrait de compte","Facture d'achat","Pièce de caisse","Facture de vente"],correct:2,explanation:"C'est une <strong>pièce de caisse</strong> : rédigée en interne pour tout paiement en <strong>espèces</strong>."},
+{text:"Quel document justifie la naissance d'une DETTE envers un fournisseur ?",options:["L'extrait de compte","La pièce de caisse","La facture de vente","La facture d'achat"],correct:3,explanation:"La <strong>facture d'achat</strong> reçue d'un fournisseur crée une dette (440 Fournisseurs au passif)."}
+]},
+{id:2,title:"Actif ou Passif ?",desc:"Classe chaque compte dans la bonne catégorie du bilan.",
+intro:"L'actif = ce que l'entreprise <strong>possède</strong>. Le passif = ce qu'elle <strong>doit</strong>. Cette distinction est la clé !",
+type:"dd",rounds:[
+{items:["550 Banque","400 Clients","440 Fournisseurs","100 Capital"],zones:{"Actif":["550 Banque","400 Clients"],"Passif":["440 Fournisseurs","100 Capital"]}},
+{items:["411 TVA sur achats","451 TVA sur ventes","23 Installations","57 Caisse"],zones:{"Actif":["411 TVA sur achats","23 Installations","57 Caisse"],"Passif":["451 TVA sur ventes"]}},
+{items:["173 Emprunts bancaires","34 Stock marchandises","24 Mobilier","440 Fournisseurs"],zones:{"Actif":["34 Stock marchandises","24 Mobilier"],"Passif":["173 Emprunts bancaires","440 Fournisseurs"]}}
+]},
+{id:3,title:"Débit ou Crédit ?",desc:"Détermine si chaque mouvement va au débit ou au crédit.",
+intro:"<strong>Actif ↑ → Débit</strong> | <strong>Actif ↓ → Crédit</strong> | <strong>Passif ↑ → Crédit</strong> | <strong>Passif ↓ → Débit</strong>",
+type:"mcq",questions:[
+{text:"550 Banque (ACTIF) reçoit 200,00 €. L'avoir augmente. Ce compte est :",options:["Débité (augmentation d'un actif)","Crédité (augmentation d'un actif)"],correct:0,explanation:"<strong>Actif qui augmente = DÉBIT</strong>."},
+{text:"400 Clients (ACTIF) : TechnoShop paie 200,00 €. La créance disparaît. Ce compte est :",options:["Débité (diminution d'un actif)","Crédité (diminution d'un actif)"],correct:1,explanation:"<strong>Actif qui diminue = CRÉDIT</strong>."},
+{text:"440 Fournisseurs (PASSIF) : facture reçue de 453,75 €. La dette augmente. Ce compte est :",options:["Débité (augmentation d'un passif)","Crédité (augmentation d'un passif)"],correct:1,explanation:"<strong>Passif qui augmente = CRÉDIT</strong>."},
+{text:"440 Fournisseurs (PASSIF) : virement de 453,75 € pour payer. La dette disparaît. Ce compte est :",options:["Débité (diminution d'un passif)","Crédité (diminution d'un passif)"],correct:0,explanation:"<strong>Passif qui diminue = DÉBIT</strong>."},
+{text:"550 Banque (ACTIF) : virement de 453,75 € pour un fournisseur. L'argent sort. Ce compte est :",options:["Débité (diminution d'un actif)","Crédité (diminution d'un actif)"],correct:1,explanation:"<strong>Actif qui diminue = CRÉDIT</strong>."},
+{text:"23 Installations (ACTIF) : achat d'un four à 375,00 €. Le patrimoine augmente. Ce compte est :",options:["Débité (augmentation d'un actif)","Crédité (augmentation d'un actif)"],correct:0,explanation:"<strong>Actif qui augmente = DÉBIT</strong>."}
+]},
+{id:4,title:"La Méthode en 5 Étapes",desc:"Analyse des opérations complètes, étape par étape.",
+intro:"Pour chaque situation : identifier le document → comprendre l'opération → trouver les comptes → actif/passif → débit/crédit.",
+type:"steps",scenarios:[
+{title:"📄 Encaissement d'une créance",context:"Marc LEROY avait une créance de 200,00 € envers TechnoShop. Extrait BNP n° 285 du 08/09 : versement de 200,00 €.",
+steps:[
+{q:"Étape 1 — Type de document ?",options:["Facture d'achat","Facture de vente","Extrait de compte bancaire","Pièce de caisse"],correct:2},
+{q:"Étape 2 — Que s'est-il passé ?",options:["Achat d'un bien","Encaissement d'une créance","Contraction d'un emprunt","Paiement d'un fournisseur"],correct:1},
+{q:"Étape 3 — Compte pour l'argent reçu ?",options:["400 Clients","440 Fournisseurs","550 Banque","57 Caisse"],correct:2},
+{q:"Étape 4 — 550 Banque est :",options:["Actif — il augmente","Passif — il augmente","Actif — il diminue","Passif — il diminue"],correct:0},
+{q:"Étape 5 — 550 Banque est donc :",options:["Débité de 200,00 €","Crédité de 200,00 €"],correct:0},
+{q:"Étape 3b — Compte pour la créance qui disparaît ?",options:["550 Banque","400 Clients","440 Fournisseurs","100 Capital"],correct:1},
+{q:"Étape 4b — 400 Clients est :",options:["Actif — il augmente","Passif — il diminue","Actif — il diminue","Passif — il augmente"],correct:2},
+{q:"Étape 5b — 400 Clients est donc :",options:["Débité de 200,00 €","Crédité de 200,00 €"],correct:1}
+]},
+{title:"📄 Remboursement d'emprunt",context:"SRL ENVOL4 rembourse 1.000,00 € sur son emprunt ING. Extrait ING n° 25/3 du 20/09.",
+steps:[
+{q:"Étape 1 — Type de document ?",options:["Facture d'achat","Pièce de caisse","Extrait de compte bancaire","Facture de vente"],correct:2},
+{q:"Étape 2 — Que s'est-il passé ?",options:["Achat de matériel","Remboursement d'emprunt","Vente d'un bien","Réception d'un paiement"],correct:1},
+{q:"Étape 3 — Compte pour la dette qui diminue ?",options:["550 Banque","440 Fournisseurs","173 Emprunts bancaires","100 Capital"],correct:2},
+{q:"Étape 4 — 173 Emprunts est :",options:["Actif — il augmente","Passif — il diminue","Actif — il diminue","Passif — il augmente"],correct:1},
+{q:"Étape 5 — 173 Emprunts est donc :",options:["Débité de 1.000,00 €","Crédité de 1.000,00 €"],correct:0},
+{q:"Étape 3b — Compte pour l'argent qui sort ?",options:["173 Emprunts","550 Banque","57 Caisse","440 Fournisseurs"],correct:1},
+{q:"Étape 4b — 550 Banque est :",options:["Passif — il augmente","Actif — il augmente","Actif — il diminue","Passif — il diminue"],correct:2},
+{q:"Étape 5b — 550 Banque est donc :",options:["Débité de 1.000,00 €","Crédité de 1.000,00 €"],correct:1}
+]}
+]},
+{id:5,title:"Opérations avec TVA",desc:"Écritures à 3 comptes ou plus.",
+intro:"Avec la TVA, une opération touche <strong>au moins 3 comptes</strong>. L'équilibre D = C reste <strong>toujours</strong> respecté !",
+type:"tva",scenarios:[
+{title:"📄 Facture d'achat avec TVA",context:"SRL ENVOL4 reçoit facture n° 39 de « La Gourmandine » : four micro-ondes. HTVA : 375,00 € — TVA 21 % : 78,75 € — TTC : 453,75 €.",
+entries:[
+{account:"23 Installations",type:"actif",direction:"debit",amount:375,hint:"Le four = actif qui augmente → débit"},
+{account:"411 TVA sur achats",type:"actif",direction:"debit",amount:78.75,hint:"TVA récupérable = créance État → actif ↑ → débit"},
+{account:"440 Fournisseurs",type:"passif",direction:"credit",amount:453.75,hint:"Dette fournisseur → passif ↑ → crédit"}
+],verif:"Débit (375 + 78,75 = 453,75) = Crédit (453,75) ✅"},
+{title:"📄 Facture de vente avec TVA",context:"SRL ENVOL4 envoie facture n° 112 au client « SportMax ». HTVA : 600,00 € — TVA 21 % : 126,00 € — TTC : 726,00 €.",
+entries:[
+{account:"400 Clients",type:"actif",direction:"debit",amount:726,hint:"Créance client → actif ↑ → débit"},
+{account:"700 Ventes",type:"passif",direction:"credit",amount:600,hint:"Produit de la vente → crédit"},
+{account:"451 TVA sur ventes",type:"passif",direction:"credit",amount:126,hint:"TVA due à l'État → passif ↑ → crédit"}
+],verif:"Débit (726) = Crédit (600 + 126 = 726) ✅"}
+]},
+{id:6,title:"Les Comptes en T",desc:"Complète les comptes en T et calcule les soldes.",
+intro:"Chaque compte = <strong>Débit à gauche, Crédit à droite</strong>. Le solde = différence entre totaux.",
+type:"tacc",scenarios:[
+{title:"📄 Encaissement créance",context:"550 Banque : solde initial 250,00 €. Extrait n° 285 : versement TechnoShop 200,00 €.",account:"550 — Banque",
+debits:[{label:"Solde initial",amount:250,pre:true},{label:"Versement TechnoShop",amount:200,pre:false}],credits:[],expBal:450,balType:"débiteur"},
+{title:"📄 Suivi Fournisseurs",context:"15/09 : facture Gourmandine 453,75 € (dette). 17/09 : virement 453,75 € (paiement).",account:"440 — Fournisseurs",
+debits:[{label:"Paiement fact. n°39",amount:453.75,pre:false}],credits:[{label:"Facture n°39 Gourmandine",amount:453.75,pre:true}],expBal:0,balType:"nul"},
+{title:"📄 Banque multi-opérations",context:"550 Banque : solde initial 500 €. 17/09 : virement 453,75 € Gourmandine. 22/09 : encaissement 726 € SportMax.",account:"550 — Banque",
+debits:[{label:"Solde initial",amount:500,pre:true},{label:"Encaissement SportMax",amount:726,pre:true}],credits:[{label:"Virement Gourmandine",amount:453.75,pre:true}],expBal:772.25,balType:"débiteur"}
+]},
+{id:7,title:"Chasseur d'Erreurs",desc:"Vérifie l'équilibre et trouve les erreurs !",
+intro:"Un bon comptable vérifie <strong>toujours</strong> Total Débits = Total Crédits.",
+type:"err",scenarios:[
+{title:"Écriture n°1 — Achat bureau",context:"Bureau 250 € HTVA, TVA 21 %, facture.",
+entries:[{account:"24 Mobilier",side:"D",amount:250},{account:"411 TVA s/achats",side:"D",amount:52.50},{account:"440 Fournisseurs",side:"C",amount:302.50}],
+ok:true,expl:"Débit (250 + 52,50 = 302,50) = Crédit (302,50) ✅"},
+{title:"Écriture n°2 — Paiement fournisseur",context:"Virement pour facture DUPONT : 605,00 €.",
+entries:[{account:"440 Fournisseurs",side:"D",amount:605},{account:"550 Banque",side:"C",amount:506}],
+ok:false,expl:"🚫 Débit (605) ≠ Crédit (506). Inversion de chiffres : 506 au lieu de 605."},
+{title:"Écriture n°3 — Vente + TVA",context:"Vente marchandises : 800 € HTVA, TVA 21 %.",
+entries:[{account:"400 Clients",side:"D",amount:968},{account:"700 Ventes",side:"C",amount:800},{account:"451 TVA s/ventes",side:"C",amount:168}],
+ok:true,expl:"Débit (968) = Crédit (800 + 168 = 968) ✅"},
+{title:"Écriture n°4 — Encaissement client",context:"Client MARTIN paie 1.210,00 € par virement.",
+entries:[{account:"550 Banque",side:"D",amount:1210},{account:"440 Fournisseurs",side:"C",amount:1210}],
+ok:false,expl:"🚫 Mauvais compte ! C'est un CLIENT qui paie → créditer <strong>400 Clients</strong>, pas 440 Fournisseurs."},
+{title:"Écriture n°5 — Achat marchandises + TVA",context:"Achat 1.500 € HTVA, TVA 21 %, facture.",
+entries:[{account:"604 Achats march.",side:"D",amount:1500},{account:"411 TVA s/achats",side:"C",amount:315},{account:"440 Fournisseurs",side:"C",amount:1815}],
+ok:false,expl:"🚫 411 TVA sur achats = créance (actif ↑) → doit être au <strong>DÉBIT</strong>, pas au crédit !"}
+]}
+];
+
+function R(id){if(!A.res[id])A.res[id]={f:0,c:0,s:0,t:0};return A.res[id]}
+function totals(){let f=0,c=0,s=0;Object.values(A.res).forEach(r=>{f+=r.f;c+=r.c;s+=r.s});return{f,c,s}}
+function updP(){const t=totals();const p=Object.keys(A.done).length/EX.length*100;document.getElementById('progressFill').style.width=p+'%';document.getElementById('sG').textContent='✅ '+t.f;document.getElementById('sO').textContent='🔄 '+t.c;document.getElementById('sR').textContent='👁 '+t.s}
+
+function renderNav(){const n=document.getElementById('navEx');n.innerHTML='';const w=document.createElement('button');w.className=`nav-btn ${A.cur===0?'active':''}`;w.textContent='🏠';w.onclick=()=>go(0);n.appendChild(w);EX.forEach((e,i)=>{const b=document.createElement('button');const num=i+1;const d=A.done[num];const act=A.cur===num;const lk=num>1&&!A.done[num-1]&&!act;b.className=`nav-btn ${act?'active':''} ${d?'completed':''} ${lk?'locked':''}`;b.textContent=d?'✓':num;b.title=`Ex. ${num}: ${e.title}`;if(!lk)b.onclick=()=>go(num);n.appendChild(b)})}
+
+function go(n){A.cur=n;renderNav();ren();updP();window.scrollTo({top:0,behavior:'smooth'})}
+function ren(){const m=document.getElementById('main');if(A.cur===0){renWelcome(m);return}const e=EX[A.cur-1];({mcq:renMCQ,dd:renDD,steps:renSteps,tva:renTVA,tacc:renTAcc,err:renErr})[e.type](m,e)}
+function euro(n){return n.toLocaleString('fr-BE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'}
+
+function sBox(id){const r=R(id);return `<div class="score-display"><div class="score-item"><div class="sv green">${r.f}</div><div class="sl">✅ 1er essai</div></div><div class="score-item"><div class="sv orange">${r.c}</div><div class="sl">🔄 Corrigé</div></div><div class="score-item"><div class="sv red">${r.s}</div><div class="sl">👁 Montré</div></div><div class="score-item"><div class="sv" style="color:var(--ink)">${r.f+r.c+r.s}/${r.t}</div><div class="sl">Total</div></div></div>`}
+function dots(arr,cur,res){return `<div class="step-indicator">${arr.map((_,i)=>{let c='';if(i<cur){const v=res[i];c=v==='f'?'d-green':v==='c'?'d-orange':'d-red'}else if(i===cur)c='active';return `<div class="step-dot ${c}"></div>`}).join('')}</div>`}
+function showFB(t,m){const f=document.getElementById('fb');if(!f)return;f.className='feedback show '+t;f.innerHTML=m}
+
+// === WELCOME ===
+function renWelcome(c){c.innerHTML=`<div style="text-align:center;padding:2rem 0"><div class="welcome-card"><h2>Bienvenue !</h2><p>Ce jeu te guide dans la <strong>comptabilité en partie double</strong>. Pour chaque question, tu as <strong>2 essais</strong>. Si tu te trompes au 1er, tu peux te corriger. Sinon, la réponse est affichée.</p><div class="legend-bar"><div class="legend-item"><div class="legend-dot green"></div> Réussi du 1er coup</div><div class="legend-item"><div class="legend-dot orange"></div> Corrigé au 2e essai</div><div class="legend-item"><div class="legend-dot red"></div> Réponse montrée</div></div><ul class="objectives-list">${EX.map((e,i)=>`<li><span class="obj-icon c${i+1}">${i+1}</span><span><strong>${e.title}</strong> — ${e.desc}</span></li>`).join('')}</ul><div class="btn-group" style="justify-content:center"><button class="btn btn-primary" onclick="go(1)">🚀 Commencer</button></div></div></div>`}
+
+// === MCQ (Ex 1 & 3) ===
+function renMCQ(c,ex){const k='m'+ex.id;if(!A[k])A[k]={i:0,a:1,r:[],el:[]};const s=A[k];const res=R(ex.id);res.t=ex.questions.length;if(s.i>=ex.questions.length){A.done[ex.id]=true;updP();showDone(c,ex);return}
+const q=ex.questions[s.i];const L='ABCD';const retry=s.a===2;
+c.innerHTML=`<div class="fade-in"><div class="exercise-header"><div class="exercise-number">Exercice ${ex.id} / ${EX.length}</div><h2>${ex.title}</h2><p>${ex.desc}</p><div class="exercise-intro">${ex.intro}</div></div>${dots(ex.questions,s.i,s.r)}${sBox(ex.id)}<div class="question-card ${retry?'retry-mode':''}" id="qC">${retry?'<div style="color:var(--orange);font-weight:700;margin-bottom:0.5rem">🔄 2e essai — Corrige ta réponse !</div>':''}<div class="question-text">Question ${s.i+1}/${ex.questions.length} — ${q.text}</div><div class="options-grid ${q.options.length<=2?'two-col':''}">${q.options.map((o,j)=>`<button class="option-btn ${s.el.includes(j)?'eliminated':''}" onclick="mA(${ex.id},${j})" id="o${j}"><span class="option-letter">${L[j]}</span><span>${o}</span></button>`).join('')}</div><div class="feedback" id="fb"></div><div id="rv"></div></div><div class="action-bar" id="ab" style="display:none"><button class="btn btn-primary" onclick="mN(${ex.id})">Question suivante ➜</button></div></div>`}
+
+function mA(eid,ch){const ex=EX.find(e=>e.id===eid);const k='m'+eid;const s=A[k];const q=ex.questions[s.i];const res=R(eid);const ok=ch===q.correct;
+if(ok){document.querySelectorAll('.option-btn').forEach(b=>b.classList.add('disabled'));document.getElementById('o'+ch).classList.add('correct-answer');document.getElementById('qC').className='question-card correct';
+if(s.a===1){res.f++;s.r.push('f');showFB('success',`✅ Bravo, bonne réponse du 1er coup !<br>${q.explanation}`)}else{res.c++;s.r.push('c');showFB('warning',`🔄 Correct au 2e essai !<br>${q.explanation}`)}
+document.getElementById('ab').style.display='flex';updP()}
+else{document.getElementById('o'+ch).classList.add('wrong-answer');document.getElementById('qC').classList.add('shake');setTimeout(()=>document.getElementById('qC').classList.remove('shake'),400);
+if(s.a===1){s.a=2;s.el.push(ch);showFB('error','❌ Ce n\'est pas la bonne réponse. Observe ton erreur et réessaie !');document.getElementById('o'+ch).classList.add('eliminated','disabled')}
+else{document.querySelectorAll('.option-btn').forEach(b=>b.classList.add('disabled'));document.getElementById('o'+q.correct).classList.add('correct-answer');res.s++;s.r.push('s');showFB('error','❌ Voici la bonne réponse :');document.getElementById('rv').innerHTML=`<div class="correct-reveal"><div class="reveal-title">📖 La bonne réponse</div><p><strong>${q.options[q.correct]}</strong></p><p style="margin-top:0.5rem">${q.explanation}</p></div>`;document.getElementById('ab').style.display='flex';updP()}}}
+function mN(eid){const k='m'+eid;A[k].i++;A[k].a=1;A[k].el=[];ren()}
+
+// === DRAG DROP (Ex 2) ===
+let ddSel=null;
+function renDD(c,ex){const k='d'+ex.id;if(!A[k])A[k]={i:0,a:1,r:[],lk:{}};const s=A[k];const res=R(ex.id);res.t=ex.rounds.length;if(s.i>=ex.rounds.length){A.done[ex.id]=true;updP();showDone(c,ex);return}
+const rd=ex.rounds[s.i];const sh=[...rd.items].sort(()=>Math.random()-0.5);const retry=s.a===2;
+c.innerHTML=`<div class="fade-in"><div class="exercise-header"><div class="exercise-number">Exercice ${ex.id} / ${EX.length}</div><h2>${ex.title}</h2><p>${ex.desc}</p><div class="exercise-intro">${ex.intro}</div></div>${dots(ex.rounds,s.i,s.r)}${sBox(ex.id)}${retry?'<div style="text-align:center;color:var(--orange);font-weight:700;margin-bottom:1rem">🔄 2e essai — Les bons sont verrouillés. Corrige les autres !</div>':''}<p style="text-align:center;margin-bottom:1rem;font-weight:600;color:var(--ink-soft)">Glisse ou clique pour placer chaque compte</p><div class="drag-items-source" id="src">${sh.filter(it=>!s.lk[it]).map(it=>`<div class="drag-item" draggable="true" data-item="${it}" onclick="ddS(this)">${it}</div>`).join('')}</div><div class="drop-zones">${Object.keys(rd.zones).map(z=>`<div class="drop-zone" id="z_${z}" data-zone="${z}" ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')" ondrop="ddD(event,'${z}')" onclick="ddZ('${z}')"><div class="drop-zone-title ${z.toLowerCase()}">${z==='Actif'?'📊 ACTIF<br><small>Avoirs, créances</small>':'📋 PASSIF<br><small>Dettes, capitaux</small>'}</div><div class="items-container" id="ic_${z}">${Object.entries(s.lk).filter(([_,v])=>v===z).map(([it])=>`<div class="drag-item correct-placed locked">${it}</div>`).join('')}</div></div>`).join('')}</div><div class="action-bar" id="ab"><button class="btn btn-primary" onclick="ddC(${ex.id})" id="ddCB">✅ Vérifier</button><button class="btn btn-success" onclick="ddN(${ex.id})" id="ddNB" style="display:none">Manche suivante ➜</button></div><div class="feedback" id="fb"></div><div id="rv"></div></div>`;
+document.querySelectorAll('#src .drag-item').forEach(it=>{it.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',it.dataset.item);it.style.opacity='0.5'});it.addEventListener('dragend',()=>{it.style.opacity='1'})})}
+function ddS(el){if(ddSel)ddSel.style.outline='';ddSel=el;el.style.outline='3px solid var(--accent)'}
+function ddZ(z){if(!ddSel)return;document.getElementById('ic_'+z).appendChild(ddSel);ddSel.style.outline='';ddSel=null}
+function ddD(e,z){e.preventDefault();e.currentTarget.classList.remove('over');const t=e.dataTransfer.getData('text/plain');const el=document.querySelector(`.drag-item[data-item="${t}"]:not(.locked)`);if(el)document.getElementById('ic_'+z).appendChild(el)}
+
+function ddC(eid){const ex=EX.find(e=>e.id===eid);const k='d'+eid;const s=A[k];const rd=ex.rounds[s.i];const res=R(eid);let allOk=true;let wrongs=[];
+Object.entries(rd.zones).forEach(([z,exp])=>{document.querySelectorAll(`#ic_${z} .drag-item:not(.locked)`).forEach(it=>{if(exp.includes(it.dataset.item)){it.classList.add('correct-placed','locked');it.draggable=false;it.onclick=null;s.lk[it.dataset.item]=z}else{it.classList.add('wrong-placed');wrongs.push(it);allOk=false}})});
+document.querySelectorAll('#src .drag-item:not(.locked)').forEach(it=>{it.classList.add('wrong-placed');wrongs.push(it);allOk=false});
+if(allOk){if(s.a===1){res.f++;s.r.push('f');showFB('success','✅ Parfait du 1er coup !')}else{res.c++;s.r.push('c');showFB('warning','🔄 Corrigé au 2e essai !')}document.getElementById('ddCB').style.display='none';document.getElementById('ddNB').style.display='inline-flex';updP()}
+else if(s.a===1){s.a=2;showFB('error','❌ Des comptes sont mal placés (rouge). Les bons sont verrouillés (vert). Corrige !');setTimeout(()=>{wrongs.forEach(it=>{it.classList.remove('wrong-placed');const src=document.getElementById('src');if(src)src.appendChild(it)})},1500)}
+else{res.s++;s.r.push('s');showFB('error','❌ Voici le classement correct :');let rv='<div class="correct-reveal"><div class="reveal-title">📖 Réponse correcte</div>';Object.entries(rd.zones).forEach(([z,items])=>{rv+=`<p><strong>${z} :</strong> ${items.join(', ')}</p>`});rv+='</div>';document.getElementById('rv').innerHTML=rv;document.getElementById('ddCB').style.display='none';document.getElementById('ddNB').style.display='inline-flex';document.querySelectorAll('.drag-item').forEach(i=>{i.draggable=false;i.onclick=null;i.style.cursor='default'});updP()}}
+function ddN(eid){const k='d'+eid;A[k].i++;A[k].a=1;A[k].lk={};ren()}
+
+// === STEPS (Ex 4) ===
+function renSteps(c,ex){const k='s'+ex.id;if(!A[k])A[k]={sc:0,st:0,a:1,r:[],el:[]};const s=A[k];const res=R(ex.id);res.t=ex.scenarios.reduce((a,sc)=>a+sc.steps.length,0);if(s.sc>=ex.scenarios.length){A.done[ex.id]=true;updP();showDone(c,ex);return}
+const sc=ex.scenarios[s.sc];const step=sc.steps[s.st];const L='ABCD';const retry=s.a===2;
+const globalIdx=ex.scenarios.slice(0,s.sc).reduce((a,x)=>a+x.steps.length,0)+s.st;
+c.innerHTML=`<div class="fade-in"><div class="exercise-header"><div class="exercise-number">Exercice ${ex.id} / ${EX.length}</div><h2>${ex.title}</h2><p>${ex.desc}</p><div class="exercise-intro">${ex.intro}</div></div><div class="scenario-box"><div class="scenario-title">${sc.title}</div><p>${sc.context}</p></div>${dots(sc.steps,s.st,s.r.slice(-s.st))}${sBox(ex.id)}<div class="question-card ${retry?'retry-mode':''}" id="qC">${retry?'<div style="color:var(--orange);font-weight:700;margin-bottom:0.5rem">🔄 2e essai</div>':''}<div class="question-text">${step.q}</div><div class="options-grid ${step.options.length<=2?'two-col':''}">${step.options.map((o,j)=>`<button class="option-btn ${s.el.includes(j)?'eliminated':''}" onclick="sA(${ex.id},${j})" id="o${j}"><span class="option-letter">${L[j]}</span><span>${o}</span></button>`).join('')}</div><div class="feedback" id="fb"></div><div id="rv"></div></div><div class="action-bar" id="ab" style="display:none"><button class="btn btn-primary" onclick="sN(${ex.id})">Étape suivante ➜</button></div></div>`}
+
+function sA(eid,ch){const ex=EX.find(e=>e.id===eid);const k='s'+eid;const s=A[k];const sc=ex.scenarios[s.sc];const step=sc.steps[s.st];const res=R(eid);const ok=ch===step.correct;
+if(ok){document.querySelectorAll('.option-btn').forEach(b=>b.classList.add('disabled'));document.getElementById('o'+ch).classList.add('correct-answer');document.getElementById('qC').className='question-card correct';
+if(s.a===1){res.f++;s.r.push('f');showFB('success','✅ Correct !')}else{res.c++;s.r.push('c');showFB('warning','🔄 Correct au 2e essai !')}
+document.getElementById('ab').style.display='flex';updP()}
+else{document.getElementById('o'+ch).classList.add('wrong-answer');document.getElementById('qC').classList.add('shake');setTimeout(()=>document.getElementById('qC').classList.remove('shake'),400);
+if(s.a===1){s.a=2;s.el.push(ch);showFB('error','❌ Réessaie !');document.getElementById('o'+ch).classList.add('eliminated','disabled')}
+else{document.querySelectorAll('.option-btn').forEach(b=>b.classList.add('disabled'));document.getElementById('o'+step.correct).classList.add('correct-answer');res.s++;s.r.push('s');showFB('error','❌ Voici la réponse :');document.getElementById('rv').innerHTML=`<div class="correct-reveal"><div class="reveal-title">📖 Réponse</div><p><strong>${step.options[step.correct]}</strong></p></div>`;document.getElementById('ab').style.display='flex';updP()}}}
+function sN(eid){const k='s'+eid;const s=A[k];const ex=EX.find(e=>e.id===eid);s.st++;s.a=1;s.el=[];if(s.st>=ex.scenarios[s.sc].steps.length){s.sc++;s.st=0}ren()}
+
+// === TVA (Ex 5) ===
+function renTVA(c,ex){const k='t'+ex.id;if(!A[k])A[k]={sc:0,a:1,r:[],lk:{}};const s=A[k];const res=R(ex.id);res.t=ex.scenarios.reduce((a,sc)=>a+sc.entries.length,0);if(s.sc>=ex.scenarios.length){A.done[ex.id]=true;updP();showDone(c,ex);return}
+const sc=ex.scenarios[s.sc];const retry=s.a===2;
+c.innerHTML=`<div class="fade-in"><div class="exercise-header"><div class="exercise-number">Exercice ${ex.id} / ${EX.length}</div><h2>${ex.title}</h2><p>${ex.desc}</p><div class="exercise-intro">${ex.intro}</div></div><div class="scenario-box"><div class="scenario-title">${sc.title}</div><p>${sc.context}</p></div>${sBox(ex.id)}${retry?'<div style="text-align:center;color:var(--orange);font-weight:700;margin-bottom:1rem">🔄 2e essai — Corrige les lignes en rouge !</div>':''}<p style="font-weight:600;margin-bottom:1rem;color:var(--ink-soft)">Pour chaque compte, choisis débit/crédit et le montant :</p>${sc.entries.map((e,i)=>{const lk=s.lk[i];return`<div class="question-card ${lk?'correct':''}" id="ec${i}"><div class="question-text">${e.account}</div><div class="question-subtitle">Compte ${e.type==='actif'?"d'<strong>actif</strong>":'de <strong>passif</strong>'}</div><div class="input-group"><label>Direction :</label><select class="select-input ${lk?'correct':''}" id="d${i}" ${lk?'disabled':''}><option value="">— Choisir —</option><option value="debit" ${lk&&e.direction==='debit'?'selected':''}>DÉBIT ▶</option><option value="credit" ${lk&&e.direction==='credit'?'selected':''}>◀ CRÉDIT</option></select></div><div class="input-group"><label>Montant (€) :</label><input type="number" class="amount-input ${lk?'correct':''}" id="a${i}" step="0.01" placeholder="0,00" ${lk?`disabled value="${e.amount}"`:''} ></div><button class="hint-toggle" onclick="document.getElementById('h${i}').classList.toggle('show')">💡 Indice</button><div class="hint-box" id="h${i}">${e.hint}</div></div>`}).join('')}<div class="action-bar" id="ab"><button class="btn btn-primary" onclick="tC(${ex.id})" id="tCB">✅ Vérifier</button><button class="btn btn-success" onclick="tN(${ex.id})" id="tNB" style="display:none">Scénario suivant ➜</button></div><div class="feedback" id="fb"></div><div id="rv"></div></div>`}
+
+function tC(eid){const ex=EX.find(e=>e.id===eid);const k='t'+eid;const s=A[k];const sc=ex.scenarios[s.sc];const res=R(eid);let allOk=true;
+sc.entries.forEach((e,i)=>{if(s.lk[i])return;const d=document.getElementById('d'+i);const a=document.getElementById('a'+i);const card=document.getElementById('ec'+i);const dOk=d.value===e.direction;const aOk=Math.abs(parseFloat(a.value||0)-e.amount)<0.01;
+if(dOk&&aOk){d.classList.add('correct');a.classList.add('correct');card.classList.add('correct');d.disabled=true;a.disabled=true;s.lk[i]=true;if(s.a===1){res.f++;s.r.push('f')}else{res.c++;s.r.push('c')}}
+else{allOk=false;if(!dOk)d.classList.add('incorrect');else d.classList.add('correct');if(!aOk)a.classList.add('incorrect');else a.classList.add('correct');card.classList.add('incorrect')}});
+if(allOk){showFB('success',`✅ Écriture complète ! ${sc.verif}`);document.getElementById('tCB').style.display='none';document.getElementById('tNB').style.display='inline-flex';updP()}
+else if(s.a===1){s.a=2;showFB('error','❌ Lignes incorrectes en rouge. Les bonnes sont verrouillées. Corrige !');setTimeout(()=>{sc.entries.forEach((_,i)=>{if(!s.lk[i]){['d'+i,'a'+i].forEach(id=>{const el=document.getElementById(id);el.classList.remove('incorrect','correct')});document.getElementById('ec'+i).classList.remove('incorrect')}})},1500)}
+else{sc.entries.forEach((e,i)=>{if(!s.lk[i]){res.s++;s.r.push('s')}});showFB('error','❌ Voici les réponses :');let rv='<div class="correct-reveal"><div class="reveal-title">📖 Réponses</div>';sc.entries.forEach(e=>{rv+=`<p><strong>${e.account}</strong> → ${e.direction==='debit'?'DÉBIT':'CRÉDIT'} ${euro(e.amount)}</p>`});rv+=`<p style="margin-top:0.5rem;font-weight:700">${sc.verif}</p></div>`;document.getElementById('rv').innerHTML=rv;document.getElementById('tCB').style.display='none';document.getElementById('tNB').style.display='inline-flex';document.querySelectorAll('input,select').forEach(e=>e.disabled=true);updP()}}
+function tN(eid){const k='t'+eid;A[k].sc++;A[k].a=1;A[k].lk={};ren()}
+
+// === T-ACCOUNTS (Ex 6) ===
+function renTAcc(c,ex){const k='ta'+ex.id;if(!A[k])A[k]={sc:0,a:1,r:[]};const s=A[k];const res=R(ex.id);res.t=ex.scenarios.length;if(s.sc>=ex.scenarios.length){A.done[ex.id]=true;updP();showDone(c,ex);return}
+const sc=ex.scenarios[s.sc];const retry=s.a===2;
+c.innerHTML=`<div class="fade-in"><div class="exercise-header"><div class="exercise-number">Exercice ${ex.id} / ${EX.length}</div><h2>${ex.title}</h2><p>${ex.desc}</p><div class="exercise-intro">${ex.intro}</div></div><div class="scenario-box"><div class="scenario-title">${sc.title}</div><p>${sc.context}</p></div>${dots(ex.scenarios,s.sc,s.r)}${sBox(ex.id)}${retry?'<div style="text-align:center;color:var(--orange);font-weight:700;margin-bottom:1rem">🔄 2e essai — Corrige !</div>':''}<div class="t-account"><div class="t-account-header">${sc.account}</div><div class="t-account-body"><div class="t-account-side"><div class="t-side-header debit">DÉBIT (+)</div>${sc.debits.map((d,i)=>`<div class="t-entry"><span>${d.label}</span>${d.pre?`<span style="font-family:'JetBrains Mono';font-weight:600">${euro(d.amount)}</span>`:`<input type="number" class="amount-input" id="db${i}" step="0.01" placeholder="?" style="width:100px">`}</div>`).join('')}</div><div class="t-account-side"><div class="t-side-header credit">CRÉDIT (–)</div>${sc.credits.length?sc.credits.map((c2,i)=>`<div class="t-entry"><span>${c2.label}</span>${c2.pre?`<span style="font-family:'JetBrains Mono';font-weight:600">${euro(c2.amount)}</span>`:`<input type="number" class="amount-input" id="cr${i}" step="0.01" placeholder="?" style="width:100px">`}</div>`).join(''):'<div class="t-entry" style="color:var(--ink-muted);font-style:italic">— aucun —</div>'}</div></div></div><div class="question-card"><div class="question-text">Solde final ?</div><div class="input-group"><label>Montant (€) :</label><input type="number" class="amount-input" id="bi" step="0.01" placeholder="0,00"></div><div class="input-group"><label>Type :</label><select class="select-input" id="bt"><option value="">— Choisir —</option><option value="débiteur">DÉBITEUR</option><option value="créditeur">CRÉDITEUR</option><option value="nul">NUL</option></select></div></div><div class="action-bar" id="ab"><button class="btn btn-primary" onclick="taC(${ex.id})" id="taCB">✅ Vérifier</button><button class="btn btn-success" onclick="taN(${ex.id})" id="taNB" style="display:none">Compte suivant ➜</button></div><div class="feedback" id="fb"></div><div id="rv"></div></div>`}
+
+function taC(eid){const ex=EX.find(e=>e.id===eid);const k='ta'+eid;const s=A[k];const sc=ex.scenarios[s.sc];const res=R(eid);let ok=true;
+sc.debits.forEach((d,i)=>{if(!d.pre){const inp=document.getElementById('db'+i);if(Math.abs(parseFloat(inp.value||0)-d.amount)<0.01)inp.classList.add('correct');else{inp.classList.add('incorrect');ok=false}}});
+sc.credits.forEach((c2,i)=>{if(!c2.pre){const inp=document.getElementById('cr'+i);if(Math.abs(parseFloat(inp.value||0)-c2.amount)<0.01)inp.classList.add('correct');else{inp.classList.add('incorrect');ok=false}}});
+const bi=document.getElementById('bi');const bt=document.getElementById('bt');if(Math.abs(parseFloat(bi.value||0)-sc.expBal)<0.01)bi.classList.add('correct');else{bi.classList.add('incorrect');ok=false}
+if(bt.value===sc.balType)bt.classList.add('correct');else{bt.classList.add('incorrect');ok=false}
+if(ok){if(s.a===1){res.f++;s.r.push('f');showFB('success',`✅ Parfait ! Solde ${sc.balType} de ${euro(sc.expBal)}.`)}else{res.c++;s.r.push('c');showFB('warning',`🔄 Correct au 2e essai ! Solde ${sc.balType} de ${euro(sc.expBal)}.`)}
+document.querySelectorAll('input,select').forEach(e=>e.disabled=true);document.getElementById('taCB').style.display='none';document.getElementById('taNB').style.display='inline-flex';updP()}
+else if(s.a===1){s.a=2;showFB('error','❌ Réponses incorrectes en rouge. Corrige !');setTimeout(()=>{document.querySelectorAll('.incorrect').forEach(e=>e.classList.remove('incorrect'))},1500)}
+else{res.s++;s.r.push('s');document.querySelectorAll('input,select').forEach(e=>e.disabled=true);showFB('error','❌ Voici la réponse :');let rv=`<div class="correct-reveal"><div class="reveal-title">📖 Réponse</div>`;sc.debits.forEach(d=>{if(!d.pre)rv+=`<p>Débit — ${d.label} : <strong>${euro(d.amount)}</strong></p>`});sc.credits.forEach(c2=>{if(!c2.pre)rv+=`<p>Crédit — ${c2.label} : <strong>${euro(c2.amount)}</strong></p>`});rv+=`<p style="margin-top:0.5rem">Solde : <strong>${sc.balType}</strong> de <strong>${euro(sc.expBal)}</strong></p></div>`;document.getElementById('rv').innerHTML=rv;document.getElementById('taCB').style.display='none';document.getElementById('taNB').style.display='inline-flex';updP()}}
+function taN(eid){const k='ta'+eid;A[k].sc++;A[k].a=1;ren()}
+
+// === ERROR HUNT (Ex 7) ===
+function renErr(c,ex){const k='e'+ex.id;if(!A[k])A[k]={sc:0,a:1,r:[],el:[]};const s=A[k];const res=R(ex.id);res.t=ex.scenarios.length;if(s.sc>=ex.scenarios.length){A.done[ex.id]=true;updP();showDone(c,ex);return}
+const sc=ex.scenarios[s.sc];const tD=sc.entries.filter(e=>e.side==='D').reduce((a,e)=>a+e.amount,0);const tC=sc.entries.filter(e=>e.side==='C').reduce((a,e)=>a+e.amount,0);const retry=s.a===2;
+c.innerHTML=`<div class="fade-in"><div class="exercise-header"><div class="exercise-number">Exercice ${ex.id} / ${EX.length}</div><h2>${ex.title}</h2><p>${ex.desc}</p><div class="exercise-intro">${ex.intro}</div></div>${dots(ex.scenarios,s.sc,s.r)}${sBox(ex.id)}<div class="scenario-box"><div class="scenario-title">${sc.title}</div><p>${sc.context}</p></div><div class="question-card ${retry?'retry-mode':''}" id="qC">${retry?'<div style="color:var(--orange);font-weight:700;margin-bottom:0.5rem">🔄 2e essai — Observe mieux !</div>':''}<table class="verif-table"><thead><tr><th>Compte</th><th>Débit</th><th>Crédit</th></tr></thead><tbody>${sc.entries.map(e=>`<tr><td>${e.account}</td><td class="mono">${e.side==='D'?euro(e.amount):''}</td><td class="mono">${e.side==='C'?euro(e.amount):''}</td></tr>`).join('')}<tr style="font-weight:700;border-top:2px solid #1e293b"><td>TOTAUX</td><td class="mono">${euro(tD)}</td><td class="mono" style="${Math.abs(tD-tC)>0.01?'color:var(--error)':''}">${euro(tC)}</td></tr></tbody></table><div style="margin-top:1.2rem"><div class="question-text">Cette écriture est-elle correcte ?</div><div class="options-grid two-col"><button class="option-btn ${s.el.includes('y')?'eliminated':''}" onclick="eA(${ex.id},true)" id="eY"><span class="option-letter">✅</span><span>Correcte</span></button><button class="option-btn ${s.el.includes('n')?'eliminated':''}" onclick="eA(${ex.id},false)" id="eN"><span class="option-letter">🚫</span><span>Incorrecte</span></button></div></div><div class="feedback" id="fb"></div><div id="rv"></div></div><div class="action-bar" id="ab" style="display:none"><button class="btn btn-primary" onclick="eNext(${ex.id})">Écriture suivante ➜</button></div></div>`}
+
+function eA(eid,yes){const ex=EX.find(e=>e.id===eid);const k='e'+eid;const s=A[k];const sc=ex.scenarios[s.sc];const res=R(eid);const right=yes===sc.ok;
+if(right){document.querySelectorAll('.option-btn').forEach(b=>b.classList.add('disabled'));(yes?document.getElementById('eY'):document.getElementById('eN')).classList.add('correct-answer');document.getElementById('qC').className='question-card correct';
+if(s.a===1){res.f++;s.r.push('f');showFB('success',`✅ Bien vu !<br>${sc.expl}`)}else{res.c++;s.r.push('c');showFB('warning',`🔄 Correct au 2e essai !<br>${sc.expl}`)}
+document.getElementById('ab').style.display='flex';updP()}
+else{(yes?document.getElementById('eY'):document.getElementById('eN')).classList.add('wrong-answer');document.getElementById('qC').classList.add('shake');setTimeout(()=>document.getElementById('qC').classList.remove('shake'),400);
+if(s.a===1){s.a=2;s.el.push(yes?'y':'n');showFB('error','❌ Ce n\'est pas ça. Observe les montants et les comptes !');(yes?document.getElementById('eY'):document.getElementById('eN')).classList.add('eliminated','disabled')}
+else{document.querySelectorAll('.option-btn').forEach(b=>b.classList.add('disabled'));(!yes?document.getElementById('eY'):document.getElementById('eN')).classList.add('correct-answer');res.s++;s.r.push('s');showFB('error','❌ Voici l\'explication :');document.getElementById('rv').innerHTML=`<div class="correct-reveal"><div class="reveal-title">📖 Explication</div><p>${sc.expl}</p></div>`;document.getElementById('ab').style.display='flex';updP()}}}
+function eNext(eid){const k='e'+eid;A[k].sc++;A[k].a=1;A[k].el=[];ren()}
+
+// === DONE / FINAL ===
+function showDone(c,ex){const r=R(ex.id);const allD=Object.keys(A.done).length>=EX.length;if(allD){showFinal(c);return}
+const pct=r.t?Math.round(r.f/r.t*100):0;let medal='🥉',msg='Continue !';if(pct>=90){medal='🏆';msg='Exceptionnel !'}else if(pct>=70){medal='🥇';msg='Très bien !'}else if(pct>=50){medal='🥈';msg='Tu progresses !'}
+if(pct>=70)confetti();const next=ex.id<EX.length?ex.id+1:null;
+c.innerHTML=`<div class="bounce-in" style="text-align:center;padding:2rem 0"><div style="font-size:4rem;margin-bottom:1rem">${medal}</div><div class="welcome-card" style="display:inline-block;max-width:500px"><h2>Exercice ${ex.id} terminé !</h2><div class="legend-bar"><div class="legend-item"><div class="legend-dot green"></div> 1er essai</div><div class="legend-item"><div class="legend-dot orange"></div> Corrigé</div><div class="legend-item"><div class="legend-dot red"></div> Montré</div></div><div style="display:flex;justify-content:center;gap:2rem;margin:1.5rem 0"><div><div style="font-size:2rem;font-weight:800;color:var(--success)">${r.f}</div><div style="font-size:0.75rem;color:var(--ink-muted)">✅ 1er essai</div></div><div><div style="font-size:2rem;font-weight:800;color:var(--orange)">${r.c}</div><div style="font-size:0.75rem;color:var(--ink-muted)">🔄 Corrigé</div></div><div><div style="font-size:2rem;font-weight:800;color:var(--error)">${r.s}</div><div style="font-size:0.75rem;color:var(--ink-muted)">👁 Montré</div></div></div><p style="font-size:0.9rem;color:var(--ink-muted)">Sur ${r.t} questions</p><p style="font-size:1.1rem;color:var(--ink-soft);margin-top:0.5rem">${msg}</p><div class="btn-group" style="justify-content:center;margin-top:1.5rem">${next?`<button class="btn btn-primary" onclick="go(${next})">Exercice suivant ➜</button>`:''}<button class="btn btn-outline" onclick="resetEx(${ex.id})">🔄 Recommencer</button></div></div></div>`}
+
+function showFinal(c){confetti();const t=totals();let total=0;Object.values(A.res).forEach(r=>total+=r.t);const pF=total?Math.round(t.f/total*100):0;let g,gc,gm;if(pF>=85){g='A — Excellent';gc='grade-a';gm='Tu maîtrises la partie double ! 🎓'}else if(pF>=65){g='B — Très bien';gc='grade-b';gm='Beau travail !'}else if(pF>=45){g='C — Satisfaisant';gc='grade-c';gm='Revois les points faibles.'}else{g='D — À retravailler';gc='grade-d';gm='Reprends les exercices.'}
+c.innerHTML=`<div class="bounce-in" style="text-align:center;padding:2rem 0"><div class="final-card"><div style="font-size:4rem;margin-bottom:0.5rem">🏆</div><h2>Parcours terminé !</h2><div class="grade-badge ${gc}">${g}</div><p style="color:var(--ink-soft);margin-bottom:1rem">${gm}</p><div class="legend-bar"><div class="legend-item"><div class="legend-dot green"></div> 1er essai</div><div class="legend-item"><div class="legend-dot orange"></div> Corrigé</div><div class="legend-item"><div class="legend-dot red"></div> Montré</div></div><table class="verif-table" style="margin:1rem 0"><thead><tr><th>Exercice</th><th style="text-align:center">✅</th><th style="text-align:center">🔄</th><th style="text-align:center">👁</th><th style="text-align:center">Total</th></tr></thead><tbody>${EX.map(ex=>{const r=R(ex.id);return`<tr><td>${ex.id}. ${ex.title}</td><td style="text-align:center;color:var(--success);font-weight:700">${r.f}</td><td style="text-align:center;color:var(--orange);font-weight:700">${r.c}</td><td style="text-align:center;color:var(--error);font-weight:700">${r.s}</td><td style="text-align:center;font-weight:700">${r.t}</td></tr>`}).join('')}<tr style="font-weight:800;border-top:2px solid var(--ink)"><td>TOTAUX</td><td style="text-align:center;color:var(--success)">${t.f}</td><td style="text-align:center;color:var(--orange)">${t.c}</td><td style="text-align:center;color:var(--error)">${t.s}</td><td style="text-align:center">${total}</td></tr></tbody></table><div style="display:flex;justify-content:center;gap:1rem;margin:1.5rem 0;flex-wrap:wrap"><div style="text-align:center;padding:1rem;background:var(--success-light);border-radius:var(--radius);flex:1;min-width:100px"><div style="font-size:2rem;font-weight:800;color:var(--success)">${pF}%</div><div style="font-size:0.7rem;color:#065f46">1er coup</div></div><div style="text-align:center;padding:1rem;background:var(--orange-light);border-radius:var(--radius);flex:1;min-width:100px"><div style="font-size:2rem;font-weight:800;color:var(--orange)">${total?Math.round(t.c/total*100):0}%</div><div style="font-size:0.7rem;color:#92400e">Auto-corrigé</div></div><div style="text-align:center;padding:1rem;background:var(--error-light);border-radius:var(--radius);flex:1;min-width:100px"><div style="font-size:2rem;font-weight:800;color:var(--error)">${total?Math.round(t.s/total*100):0}%</div><div style="font-size:0.7rem;color:#991b1b">Montré</div></div></div><div class="btn-group" style="justify-content:center"><button class="btn btn-primary" onclick="resetAll()">🔄 Tout recommencer</button><button class="btn btn-outline" onclick="go(0)">🏠 Accueil</button></div></div></div>`}
+
+function resetEx(id){delete A.done[id];delete A.res[id];['m','d','s','t','ta','e'].forEach(p=>delete A[p+id]);go(id)}
+function resetAll(){EX.forEach(ex=>{delete A.done[ex.id];delete A.res[ex.id];['m','d','s','t','ta','e'].forEach(p=>delete A[p+ex.id])});go(0)}
+
+function confetti(){const c=document.getElementById('confC');const cols=['#2563eb','#7c3aed','#059669','#f59e0b','#dc2626','#ec4899'];for(let i=0;i<50;i++){const d=document.createElement('div');d.style.cssText=`position:absolute;width:${Math.random()*10+5}px;height:${Math.random()*10+5}px;background:${cols[Math.floor(Math.random()*cols.length)]};left:${Math.random()*100}%;top:-10px;border-radius:${Math.random()>0.5?'50%':'2px'};animation:cfall ${Math.random()*2+1.5}s ease-in forwards;animation-delay:${Math.random()*0.5}s`;c.appendChild(d)}setTimeout(()=>{c.innerHTML=''},4000)}
+
+renderNav();ren();updP();
+</script>
+</body>
+</html>
